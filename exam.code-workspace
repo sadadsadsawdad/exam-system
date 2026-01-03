@@ -1,0 +1,15 @@
+{
+  "folders": [
+    {
+      "name": "exam",
+      "path": "."
+    }
+  ],
+  "settings": {
+    "java.project.sourcePaths": [
+      "springboot/src/main/java",
+      "springboot/src/main/resources"
+    ],
+    "java.configuration.updateBuildConfiguration": "automatic"
+  }
+}

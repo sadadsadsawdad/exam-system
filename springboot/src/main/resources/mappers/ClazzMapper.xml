@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.springboot.dao.ClazzMapper">
+    <resultMap id="BaseResultMap" type="com.example.springboot.entity.Clazz">
+        <id property="id" column="id"/>
+        <result property="name" column="name"/>
+        <result property="description" column="description"/>
+        <result property="studentCount" column="studentCount"/>
+    </resultMap>
+
+    <!-- 根据ID查询班级 -->
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT * FROM clazz WHERE id = #{id}
+    </select>
+
+    <!-- 查询所有班级（带学生人数统计） -->
+    <select id="selectAll" resultMap="BaseResultMap">
+        SELECT c.*, 
+               (SELECT COUNT(*) FROM userlist u WHERE u.class_id = c.id) as studentCount
+        FROM clazz c
+        ORDER BY c.id
+    </select>
+
+    <!-- 根据名称查询班级 -->
+    <select id="selectByName" resultMap="BaseResultMap">
+        SELECT * FROM clazz WHERE name = #{name}
+    </select>
+
+    <!-- 插入班级 -->
+    <insert id="insert" parameterType="com.example.springboot.entity.Clazz" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO clazz (name, description) VALUES (#{name}, #{description})
+    </insert>
+
+    <!-- 更新班级 -->
+    <update id="update" parameterType="com.example.springboot.entity.Clazz">
+        UPDATE clazz
+        <set>
+            <if test="name != null">name = #{name},</if>
+            <if test="description != null">description = #{description},</if>
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <!-- 删除班级 -->
+    <delete id="delete" parameterType="long">
+        DELETE FROM clazz WHERE id = #{id}
+    </delete>
+
+    <!-- 统计班级总数 -->
+    <select id="count" resultType="int">
+        SELECT COUNT(*) FROM clazz
+    </select>
+</mapper>

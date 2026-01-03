@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.springboot.dao.ExamUserMapper">
+    
+    <resultMap id="BaseResultMap" type="com.example.springboot.entity.ExamUser">
+        <id property="id" column="id" />
+        <result property="examId" column="exam_id" />
+        <result property="userId" column="user_id" />
+        <result property="username" column="username" />
+    </resultMap>
+
+    <!-- 批量插入 -->
+    <insert id="batchInsert">
+        INSERT INTO exam_user (exam_id, user_id) VALUES
+        <foreach collection="userIds" item="userId" separator=",">
+            (#{examId}, #{userId})
+        </foreach>
+    </insert>
+
+    <!-- 删除考试的所有用户关联 -->
+    <delete id="deleteByExamId">
+        DELETE FROM exam_user WHERE exam_id = #{examId}
+    </delete>
+
+    <!-- 查询考试的指定用户列表 -->
+    <select id="selectByExamId" resultMap="BaseResultMap">
+        SELECT eu.*, u.username 
+        FROM exam_user eu 
+        LEFT JOIN userlist u ON eu.user_id = u.id 
+        WHERE eu.exam_id = #{examId}
+    </select>
+
+    <!-- 检查用户是否被指定参加考试 -->
+    <select id="checkUserInExam" resultType="int">
+        SELECT COUNT(*) FROM exam_user WHERE exam_id = #{examId} AND user_id = #{userId}
+    </select>
+
+    <!-- 统计考试指定用户数量 -->
+    <select id="countByExamId" resultType="int">
+        SELECT COUNT(*) FROM exam_user WHERE exam_id = #{examId}
+    </select>
+</mapper>

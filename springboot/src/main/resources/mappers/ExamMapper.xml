@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.springboot.dao.ExamMapper">
+    <resultMap id="BaseResultMap" type="com.example.springboot.entity.Exam">
+        <id property="id" column="id" />
+        <result property="title" column="title" />
+        <result property="description" column="description" />
+        <result property="subject" column="subject" />
+        <result property="totalScore" column="total_score" />
+        <result property="durationMinutes" column="duration_minutes" />
+        <result property="startTime" column="start_time" />
+        <result property="endTime" column="end_time" />
+        <result property="difficulty" column="difficulty" />
+        <result property="status" column="status" />
+        <result property="classId" column="class_id" />
+        <result property="singleCount" column="single_count" />
+        <result property="multiCount" column="multi_count" />
+        <result property="judgeCount" column="judge_count" />
+        <result property="programCount" column="program_count" />
+    </resultMap>
+
+    <!-- 带班级名称的结果映射 -->
+    <resultMap id="ExamWithClassMap" type="com.example.springboot.entity.Exam">
+        <id property="id" column="id" />
+        <result property="title" column="title" />
+        <result property="description" column="description" />
+        <result property="subject" column="subject" />
+        <result property="totalScore" column="total_score" />
+        <result property="durationMinutes" column="duration_minutes" />
+        <result property="startTime" column="start_time" />
+        <result property="endTime" column="end_time" />
+        <result property="difficulty" column="difficulty" />
+        <result property="status" column="status" />
+        <result property="classId" column="class_id" />
+        <result property="className" column="className" />
+        <result property="singleCount" column="single_count" />
+        <result property="multiCount" column="multi_count" />
+        <result property="judgeCount" column="judge_count" />
+        <result property="programCount" column="program_count" />
+    </resultMap>
+
+    <select id="selectAll" resultMap="ExamWithClassMap">
+        SELECT e.*, c.name as className 
+        FROM exam e 
+        LEFT JOIN clazz c ON e.class_id = c.id 
+        ORDER BY e.id DESC
+    </select>
+
+    <select id="selectById" resultMap="ExamWithClassMap">
+        SELECT e.*, c.name as className 
+        FROM exam e 
+        LEFT JOIN clazz c ON e.class_id = c.id 
+        WHERE e.id = #{id}
+    </select>
+
+    <insert id="insert" parameterType="com.example.springboot.entity.Exam" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO exam
+        (title, description, subject, total_score, duration_minutes, start_time, end_time, difficulty, status, class_id, single_count, multi_count, judge_count, program_count)
+        VALUES
+        (#{title}, #{description}, #{subject}, #{totalScore}, #{durationMinutes}, #{startTime}, #{endTime}, #{difficulty}, #{status}, #{classId}, #{singleCount}, #{multiCount}, #{judgeCount}, #{programCount})
+    </insert>
+
+    <update id="update" parameterType="com.example.springboot.entity.Exam">
+        UPDATE exam
+        SET title = #{title},
+            description = #{description},
+            subject = #{subject},
+            total_score = #{totalScore},
+            duration_minutes = #{durationMinutes},
+            start_time = #{startTime},
+            end_time = #{endTime},
+            difficulty = #{difficulty},
+            status = #{status},
+            class_id = #{classId},
+            single_count = #{singleCount},
+            multi_count = #{multiCount},
+            judge_count = #{judgeCount},
+            program_count = #{programCount}
+        WHERE id = #{id}
+    </update>
+
+    <delete id="delete" parameterType="long">
+        DELETE FROM exam WHERE id = #{id}
+    </delete>
+</mapper>

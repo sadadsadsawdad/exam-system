@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.springboot.dao.QuestionMapper">
+    <resultMap id="BaseResultMap" type="com.example.springboot.entity.Question">
+        <id property="id" column="id" />
+        <result property="title" column="title" />
+        <result property="content" column="content" />
+        <result property="type" column="type" />
+        <result property="score" column="score" />
+        <result property="difficulty" column="difficulty" />
+        <result property="subject" column="subject" />
+        <result property="tags" column="tags" />
+        <result property="judgeAnswer" column="judge_answer" />
+        <result property="optionA" column="option_a" />
+        <result property="optionB" column="option_b" />
+        <result property="optionC" column="option_c" />
+        <result property="optionD" column="option_d" />
+        <result property="correctOption" column="correct_option" />
+        <result property="inputDesc" column="input_desc" />
+        <result property="outputDesc" column="output_desc" />
+        <result property="sampleInput" column="sample_input" />
+        <result property="sampleOutput" column="sample_output" />
+        <result property="standardCode" column="standard_code" />
+    </resultMap>
+
+    <select id="selectAll" resultMap="BaseResultMap">
+        SELECT * FROM question ORDER BY id DESC
+    </select>
+
+    <insert id="insert" parameterType="com.example.springboot.entity.Question">
+        INSERT INTO question
+        (title, content, type, score, difficulty, subject, tags, judge_answer,
+         option_a, option_b, option_c, option_d, correct_option,
+         input_desc, output_desc, sample_input, sample_output, standard_code)
+        VALUES
+        (#{title}, #{content}, #{type}, #{score}, #{difficulty}, #{subject}, #{tags}, #{judgeAnswer},
+         #{optionA}, #{optionB}, #{optionC}, #{optionD}, #{correctOption},
+         #{inputDesc}, #{outputDesc}, #{sampleInput}, #{sampleOutput}, #{standardCode})
+    </insert>
+
+    <update id="update" parameterType="com.example.springboot.entity.Question">
+        UPDATE question
+        SET title = #{title},
+            content = #{content},
+            type = #{type},
+            score = #{score},
+            difficulty = #{difficulty},
+            subject = #{subject},
+            tags = #{tags},
+            judge_answer = #{judgeAnswer},
+            option_a = #{optionA},
+            option_b = #{optionB},
+            option_c = #{optionC},
+            option_d = #{optionD},
+            correct_option = #{correctOption},
+            input_desc = #{inputDesc},
+            output_desc = #{outputDesc},
+            sample_input = #{sampleInput},
+            sample_output = #{sampleOutput},
+            standard_code = #{standardCode}
+        WHERE id = #{id}
+    </update>
+
+    <delete id="delete" parameterType="long">
+        DELETE FROM question WHERE id = #{id}
+    </delete>
+
+    <!-- 按题型随机获取指定数量的题目 -->
+    <select id="selectRandomByType" resultMap="BaseResultMap">
+        SELECT * FROM question WHERE type = #{type} ORDER BY RAND() LIMIT #{count}
+    </select>
+
+    <!-- 按题型统计题目数量 -->
+    <select id="countByType" resultType="int">
+        SELECT COUNT(*) FROM question WHERE type = #{type}
+    </select>
+
+    <!-- 根据ID查询题目 -->
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT * FROM question WHERE id = #{id}
+    </select>
+</mapper>

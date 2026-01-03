@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.springboot.dao.ExamResultMapper">
+    <resultMap id="BaseResultMap" type="com.example.springboot.entity.ExamResult">
+        <id property="id" column="id" />
+        <result property="userId" column="user_id" />
+        <result property="examId" column="exam_id" />
+        <result property="username" column="username" />
+        <result property="examTitle" column="exam_title" />
+        <result property="score" column="score" />
+        <result property="totalScore" column="total_score" />
+        <result property="status" column="status" />
+        <result property="submitTime" column="submit_time" />
+        <result property="codeAnswer" column="code_answer" />
+        <result property="answerDetail" column="answer_detail" />
+        <result property="gradedBy" column="graded_by" />
+        <result property="gradedTime" column="graded_time" />
+        <result property="gradingStatus" column="grading_status" />
+        <result property="classId" column="class_id" />
+        <result property="className" column="class_name" />
+    </resultMap>
+
+    <select id="selectByUserId" resultMap="BaseResultMap" parameterType="long">
+        SELECT * FROM exam_result WHERE user_id = #{userId} ORDER BY submit_time DESC
+    </select>
+
+    <select id="selectAll" resultMap="BaseResultMap">
+        SELECT * FROM exam_result ORDER BY submit_time DESC
+    </select>
+
+    <select id="selectById" resultMap="BaseResultMap" parameterType="long">
+        SELECT * FROM exam_result WHERE id = #{id}
+    </select>
+
+    <insert id="insert" parameterType="com.example.springboot.entity.ExamResult">
+        INSERT INTO exam_result
+        (user_id, exam_id, username, exam_title, score, total_score, status, submit_time, code_answer, answer_detail)
+        VALUES
+        (#{userId}, #{examId}, #{username}, #{examTitle}, #{score}, #{totalScore}, #{status}, #{submitTime}, #{codeAnswer}, #{answerDetail})
+    </insert>
+
+    <delete id="deleteByExamId" parameterType="long">
+        DELETE FROM exam_result WHERE exam_id = #{examId}
+    </delete>
+
+    <update id="update" parameterType="com.example.springboot.entity.ExamResult">
+        UPDATE exam_result
+        SET score = #{score},
+            grading_status = #{gradingStatus},
+            graded_by = #{gradedBy},
+            graded_time = #{gradedTime}
+        WHERE id = #{id}
+    </update>
+
+    <select id="selectForGrading" resultMap="BaseResultMap">
+        SELECT er.*, u.class_id, c.name as class_name
+        FROM exam_result er
+        LEFT JOIN userlist u ON er.user_id = u.id
+        LEFT JOIN clazz c ON u.class_id = c.id
+        WHERE 1=1
+        <if test="status != null and status != ''">
+            AND er.grading_status = #{status}
+        </if>
+        <if test="examId != null">
+            AND er.exam_id = #{examId}
+        </if>
+        <if test="keyword != null and keyword != ''">
+            AND (er.username LIKE CONCAT('%', #{keyword}, '%') 
+                 OR er.exam_title LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        ORDER BY er.submit_time DESC
+    </select>
+</mapper>
