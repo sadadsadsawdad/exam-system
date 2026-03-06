@@ -1,8 +1,3 @@
--- 创建数据库（如果不存在）
-CREATE DATABASE IF NOT EXISTS exam DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-
-USE exam;
-
 -- 创建班级表
 CREATE TABLE IF NOT EXISTS clazz (
     id INT PRIMARY KEY AUTO_INCREMENT,
@@ -26,10 +21,10 @@ CREATE TABLE IF NOT EXISTS userlist (
 );
 
 -- 插入默认班级
-INSERT INTO clazz (name) VALUES ('默认班级');
+INSERT IGNORE INTO clazz (id, name) VALUES (1, '默认班级');
 
 -- 插入管理员账户（密码: admin123）
-INSERT INTO userlist (Username, Pwd, role, status) VALUES ('admin', 'admin123', 'admin', 1);
+INSERT IGNORE INTO userlist (Username, Pwd, role, status) VALUES ('admin', 'admin123', 'admin', 1);
 
 -- 插入测试学生账户（密码: 123456）
-INSERT INTO userlist (Username, Pwd, role, class_id, status) VALUES ('test', '123456', 'student', 1, 1);
+INSERT IGNORE INTO userlist (Username, Pwd, role, class_id, status) VALUES ('test', '123456', 'student', 1, 1);
