@@ -1,7 +1,10 @@
 // API 配置文件
 // 根据环境自动切换 API 地址
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8081'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 
+  (import.meta.env.MODE === 'production' 
+    ? 'https://exam-system-production-7cdd.up.railway.app' 
+    : 'http://localhost:8081')
 
 export default API_BASE_URL
 
