@@ -1,12 +1,12 @@
 {
   "version": 2,
-  "buildCommand": "cd vue && npm install && npm run build",
-  "outputDirectory": "vue/dist",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
   "framework": "vite",
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://your-backend-url.railway.app/:path*"
+      "destination": "https://exam-system-production-7cdd.up.railway.app/api/:path*"
     },
     {
       "source": "/(.*)",
