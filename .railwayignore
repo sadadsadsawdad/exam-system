@@ -1,0 +1,7 @@
+# Railway 忽略文件
+# 让 Railway 使用 railway.json 而不是 Dockerfile
+
+Dockerfile
+docker-compose.yml
+vue/Dockerfile
+springboot/Dockerfile
