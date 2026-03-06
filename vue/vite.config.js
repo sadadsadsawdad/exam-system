@@ -17,10 +17,19 @@ export default defineConfig({
     chunkSizeWarningLimit: 1500,
     rollupOptions: {
       output: {
-        manualChunks: {
-          'element-plus': ['element-plus'],
-          'echarts': ['echarts'],
-          'vue-vendor': ['vue', 'vue-router']
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('element-plus')) {
+              return 'element-plus';
+            }
+            if (id.includes('echarts')) {
+              return 'echarts';
+            }
+            if (id.includes('vue') || id.includes('vue-router')) {
+              return 'vue-vendor';
+            }
+            return 'vendor';
+          }
         }
       }
     }
