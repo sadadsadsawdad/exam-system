@@ -36,14 +36,22 @@
 
     <insert id="insert" parameterType="com.example.springboot.entity.ExamResult">
         INSERT INTO exam_result
-        (user_id, exam_id, username, exam_title, score, total_score, status, submit_time, code_answer, answer_detail)
+        (user_id, exam_id, username, exam_title, score, total_score, status, submit_time, code_answer, answer_detail, grading_status)
         VALUES
-        (#{userId}, #{examId}, #{username}, #{examTitle}, #{score}, #{totalScore}, #{status}, #{submitTime}, #{codeAnswer}, #{answerDetail})
+        (#{userId}, #{examId}, #{username}, #{examTitle}, #{score}, #{totalScore}, #{status}, #{submitTime}, #{codeAnswer}, #{answerDetail}, #{gradingStatus})
     </insert>
 
     <delete id="deleteByExamId" parameterType="long">
         DELETE FROM exam_result WHERE exam_id = #{examId}
     </delete>
+
+    <delete id="deleteByUserId" parameterType="long">
+        DELETE FROM exam_result WHERE user_id = #{userId}
+    </delete>
+
+    <select id="selectByExamId" resultMap="BaseResultMap" parameterType="long">
+        SELECT * FROM exam_result WHERE exam_id = #{examId}
+    </select>
 
     <update id="update" parameterType="com.example.springboot.entity.ExamResult">
         UPDATE exam_result
@@ -72,4 +80,10 @@
         </if>
         ORDER BY er.submit_time DESC
     </select>
+
+    <update id="fixAbsentGradingStatus">
+        UPDATE exam_result 
+        SET grading_status = 'GRADED' 
+        WHERE status = 'ABSENT' AND (grading_status IS NULL OR grading_status != 'GRADED')
+    </update>
 </mapper>

@@ -125,4 +125,11 @@ public class NotificationService {
     public void markAllAsRead(Long userId) {
         notificationMapper.markAllAsReadByUserId(userId);
     }
+
+    /**
+     * 删除通知
+     */
+    public void deleteNotification(Long id) {
+        notificationMapper.delete(id);
+    }
 }

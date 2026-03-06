@@ -2,6 +2,7 @@ package com.example.springboot.controller;
 
 import com.example.springboot.common.Result;
 import com.example.springboot.entity.User;
+import com.example.springboot.service.ExamResultService;
 import com.example.springboot.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -18,6 +19,9 @@ public class UserController {
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private ExamResultService examResultService;
 
     /**
      * 获取所有用户
@@ -116,6 +120,9 @@ public class UserController {
             return Result.error("用户不存在");
         }
 
+        // 先删除该用户的所有考试成绩记录
+        examResultService.deleteByUserId(Long.valueOf(id));
+        
         userService.deleteUser(id);
         return Result.success("用户删除成功", null);
     }
@@ -198,6 +205,11 @@ public class UserController {
             return Result.error("请选择要删除的用户");
         }
 
+        // 先删除这些用户的所有考试成绩记录
+        for (Integer id : request.getIds()) {
+            examResultService.deleteByUserId(Long.valueOf(id));
+        }
+        
         userService.batchDeleteUsers(request.getIds());
         return Result.success("批量删除成功", null);
     }

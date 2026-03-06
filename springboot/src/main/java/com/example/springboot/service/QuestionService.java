@@ -45,14 +45,41 @@ public class QuestionService {
      * @param judgeCount 判断题数量
      * @param programCount 编程题数量
      * @return 随机题目列表，每题分数已调整使总分为100
+     * @throws IllegalArgumentException 如果题库中题目数量不足
      */
     public List<Question> generateRandomExam(int singleCount, int multiCount, int judgeCount, int programCount) {
         List<Question> result = new ArrayList<>();
+        
+        // 先检查题库数量是否足够
+        int[] availableCounts = getQuestionCountByType();
+        StringBuilder errorMsg = new StringBuilder();
+        
+        if (singleCount > 0 && availableCounts[0] < singleCount) {
+            errorMsg.append("单选题不足(需要").append(singleCount).append("题，题库仅有").append(availableCounts[0]).append("题); ");
+        }
+        if (multiCount > 0 && availableCounts[1] < multiCount) {
+            errorMsg.append("多选题不足(需要").append(multiCount).append("题，题库仅有").append(availableCounts[1]).append("题); ");
+        }
+        if (judgeCount > 0 && availableCounts[2] < judgeCount) {
+            errorMsg.append("判断题不足(需要").append(judgeCount).append("题，题库仅有").append(availableCounts[2]).append("题); ");
+        }
+        if (programCount > 0 && availableCounts[3] < programCount) {
+            errorMsg.append("编程题不足(需要").append(programCount).append("题，题库仅有").append(availableCounts[3]).append("题); ");
+        }
+        
+        if (errorMsg.length() > 0) {
+            throw new IllegalArgumentException("题库题目数量不足: " + errorMsg.toString());
+        }
+        
+        System.out.println("[随机出题] 开始生成试卷，时间戳: " + System.currentTimeMillis());
+        System.out.println("[随机出题] 题库统计 - 单选:" + availableCounts[0] + " 多选:" + availableCounts[1] + 
+                          " 判断:" + availableCounts[2] + " 编程:" + availableCounts[3]);
         
         // 1-单选题
         if (singleCount > 0) {
             Question[] singles = questionMapper.selectRandomByType(1, singleCount);
             if (singles != null) {
+                System.out.println("[随机出题] 抽取单选题 " + singles.length + " 道: " + getQuestionIds(singles));
                 result.addAll(Arrays.asList(singles));
             }
         }
@@ -61,6 +88,7 @@ public class QuestionService {
         if (multiCount > 0) {
             Question[] multis = questionMapper.selectRandomByType(2, multiCount);
             if (multis != null) {
+                System.out.println("[随机出题] 抽取多选题 " + multis.length + " 道: " + getQuestionIds(multis));
                 result.addAll(Arrays.asList(multis));
             }
         }
@@ -69,6 +97,7 @@ public class QuestionService {
         if (judgeCount > 0) {
             Question[] judges = questionMapper.selectRandomByType(3, judgeCount);
             if (judges != null) {
+                System.out.println("[随机出题] 抽取判断题 " + judges.length + " 道: " + getQuestionIds(judges));
                 result.addAll(Arrays.asList(judges));
             }
         }
@@ -77,14 +106,39 @@ public class QuestionService {
         if (programCount > 0) {
             Question[] programs = questionMapper.selectRandomByType(4, programCount);
             if (programs != null) {
+                System.out.println("[随机出题] 抽取编程题 " + programs.length + " 道: " + getQuestionIds(programs));
                 result.addAll(Arrays.asList(programs));
             }
         }
+        
+        // 打乱题目顺序，增加随机性
+        java.util.Collections.shuffle(result);
+        System.out.println("[随机出题] 打乱后题目顺序: " + getQuestionIdsFromList(result));
         
         // 调整每题分数，使总分为100分
         adjustScoresToTotal(result, 100);
         
         return result;
+    }
+    
+    private String getQuestionIds(Question[] questions) {
+        StringBuilder sb = new StringBuilder("[");
+        for (int i = 0; i < questions.length; i++) {
+            if (i > 0) sb.append(", ");
+            sb.append(questions[i].getId());
+        }
+        sb.append("]");
+        return sb.toString();
+    }
+    
+    private String getQuestionIdsFromList(List<Question> questions) {
+        StringBuilder sb = new StringBuilder("[");
+        for (int i = 0; i < questions.size(); i++) {
+            if (i > 0) sb.append(", ");
+            sb.append(questions.get(i).getId());
+        }
+        sb.append("]");
+        return sb.toString();
     }
     
     /**

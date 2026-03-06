@@ -31,6 +31,7 @@
           <el-table-column prop="totalScore" label="总分" width="70" />
           <el-table-column prop="durationMinutes" label="时长(分钟)" width="100" />
           <el-table-column prop="startTime" label="开始时间" width="160" />
+          <el-table-column prop="endTime" label="结束时间" width="160" />
           <el-table-column prop="status" label="状态" width="90">
             <template #default="scope">
               <el-tag
@@ -50,10 +51,17 @@
               <span v-else class="all-class">全部班级</span>
             </template>
           </el-table-column>
-          <el-table-column label="操作" width="240" fixed="right">
+          <el-table-column label="操作" width="320" fixed="right">
             <template #default="scope">
               <el-button type="warning" size="small" plain @click="openUserDialog(scope.row)">指定用户</el-button>
               <el-button type="primary" size="small" plain @click="openEdit(scope.row)">编辑</el-button>
+              <el-button 
+                v-if="isExamEnded(scope.row)" 
+                type="info" 
+                size="small" 
+                plain 
+                @click="processAbsent(scope.row)"
+              >处理缺考</el-button>
               <el-button type="danger" size="small" plain @click="handleDelete(scope.row.id)">删除</el-button>
             </template>
           </el-table-column>
@@ -100,6 +108,12 @@
                   format="YYYY-MM-DD HH:mm:ss"
                   style="width: 100%;"
                 />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="结束时间">
+                <el-input :value="calcEndTime" disabled placeholder="根据开始时间和时长自动计算" />
+                <span class="form-hint">自动计算</span>
               </el-form-item>
             </el-col>
           </el-row>
@@ -367,6 +381,56 @@ const calcProgramScore = computed(() => {
   return Math.round(calcScorePerQuestion.value)
 })
 
+// 计算结束时间
+const calcEndTime = computed(() => {
+  if (!form.value.startTime || !form.value.durationMinutes) return ''
+  try {
+    const startDate = new Date(form.value.startTime)
+    const endDate = new Date(startDate.getTime() + form.value.durationMinutes * 60 * 1000)
+    const pad = (n) => n.toString().padStart(2, '0')
+    return `${endDate.getFullYear()}-${pad(endDate.getMonth() + 1)}-${pad(endDate.getDate())} ${pad(endDate.getHours())}:${pad(endDate.getMinutes())}:${pad(endDate.getSeconds())}`
+  } catch (e) {
+    return ''
+  }
+})
+
+// 判断考试是否已结束
+const isExamEnded = (exam) => {
+  if (exam.status === 'FINISHED') return true
+  if (!exam.endTime) return false
+  try {
+    const endDate = new Date(exam.endTime)
+    return Date.now() > endDate.getTime()
+  } catch (e) {
+    return false
+  }
+}
+
+// 自动结束考试并处理缺考
+const autoFinishExam = async (exam) => {
+  try {
+    // 1. 更新考试状态为已结束
+    const updateRes = await fetch('http://localhost:8081/api/exams', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...exam, status: 'FINISHED' })
+    })
+    
+    if (updateRes.ok) {
+      // 2. 处理缺考
+      await fetch(`http://localhost:8081/api/exams/${exam.id}/process-absent`, {
+        method: 'POST'
+      })
+      
+      // 更新本地状态
+      exam.status = 'FINISHED'
+      console.log(`考试"${exam.title}"已自动结束并处理缺考`)
+    }
+  } catch (e) {
+    console.error('自动结束考试失败', e)
+  }
+}
+
 const fetchExams = async () => {
   try {
     const res = await fetch('http://localhost:8081/api/exams')
@@ -374,6 +438,13 @@ const fetchExams = async () => {
       throw new Error('获取考试列表失败')
     }
     exams.value = await res.json()
+    
+    // 自动处理已过期但状态还是"已发布"的考试
+    for (const exam of exams.value) {
+      if (exam.status === 'PUBLISHED' && isExamEnded(exam)) {
+        await autoFinishExam(exam)
+      }
+    }
   } catch (e) {
     ElMessage.error(e.message || '获取考试列表失败')
   }
@@ -635,6 +706,35 @@ onMounted(() => {
   fetchExams()
   fetchClazzList()
 })
+
+// 处理缺考（手动触发）
+const processAbsent = async (exam) => {
+  try {
+    await ElMessageBox.confirm(
+      `确定要为考试"${exam.title}"处理缺考吗？\n系统将为未参加考试的学生生成0分缺考记录。`,
+      '处理缺考',
+      { type: 'warning' }
+    )
+    
+    const res = await fetch(`http://localhost:8081/api/exams/${exam.id}/process-absent`, {
+      method: 'POST'
+    })
+    const result = await res.json()
+    
+    if (res.ok && result.code === 200) {
+      ElMessage.success(result.data || '处理完成')
+      // 刷新考试列表
+      await fetchExams()
+    } else {
+      ElMessage.error(result.message || '处理失败')
+    }
+  } catch (e) {
+    if (e !== 'cancel') {
+      console.error('处理缺考错误:', e)
+      ElMessage.error('处理缺考失败')
+    }
+  }
+}
 </script>
 
 <style scoped>

@@ -1,0 +1,47 @@
+# Node
+node_modules/
+npm-debug.log
+yarn-error.log
+.npm
+.yarn
+
+# Maven
+target/
+.mvn/
+mvnw
+mvnw.cmd
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.swp
+*.swo
+
+# Git
+.git/
+.gitignore
+
+# 环境文件
+.env.local
+.env.*.local
+
+# 日志
+*.log
+logs/
+
+# 临时文件
+*.tmp
+*.temp
+.DS_Store
+
+# 部署文件
+deploy/
+部署文档.md
+快速部署指南.md
+云平台部署指南.md
+
+# 文档
+docs/
+*.md
+!README.md

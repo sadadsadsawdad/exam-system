@@ -1,5 +1,6 @@
 package com.example.springboot.controller;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -15,6 +16,10 @@ import java.util.UUID;
 @CrossOrigin(origins = {"http://localhost:5173", "http://localhost:5174"}, allowCredentials = "true")
 @RequestMapping("/api")
 public class CompileController {
+
+    // 从配置文件读取GCC路径，默认使用系统PATH中的gcc
+    @Value("${compiler.gcc.path:gcc}")
+    private String gccPath;
 
     @PostMapping("/compile-c")
     public ResponseEntity<String> compileAndRun(@RequestBody Map<String, String> body) {
@@ -53,11 +58,10 @@ public class CompileController {
         try {
             ProcessBuilder compilePb;
             if (isWindows) {
-                // 使用用户提供的gcc绝对路径，避免PATH环境变量问题
-                String gccPath = "D:\\Users\\l\\Downloads\\x86_64-8.1.0-release-win32-sjlj-rt_v6-rev0\\mingw64\\bin\\gcc.exe";
+                // 从配置文件读取gcc路径，如果未配置则使用默认值
                 compilePb = new ProcessBuilder(gccPath, cFile.toString(), "-o", exeFile.toString());
             } else {
-                compilePb = new ProcessBuilder("gcc", cFile.toString(), "-o", exeFile.toString());
+                compilePb = new ProcessBuilder(gccPath, cFile.toString(), "-o", exeFile.toString());
             }
             compilePb.directory(tempDir.toFile());
             compilePb.redirectErrorStream(true);

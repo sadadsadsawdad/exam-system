@@ -74,18 +74,6 @@
           <el-icon><Plus /></el-icon>
           添加用户
         </el-button>
-        <el-button type="primary" @click="handleBatchEnable" :disabled="selectedUsers.length === 0">
-          <el-icon><CircleCheck /></el-icon>
-          批量启用
-        </el-button>
-        <el-button type="warning" @click="handleBatchDisable" :disabled="selectedUsers.length === 0">
-          <el-icon><CircleClose /></el-icon>
-          批量禁用
-        </el-button>
-        <el-button type="danger" @click="handleBatchDelete" :disabled="selectedUsers.length === 0">
-          <el-icon><Delete /></el-icon>
-          批量删除
-        </el-button>
       </div>
     </div>
 

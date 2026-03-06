@@ -132,7 +132,6 @@
           <div class="quick-actions">
             <el-button type="primary" icon="Document" @click="goToTest">在线考试</el-button>
             <el-button type="success" icon="TrendCharts" @click="goToScore">成绩查询</el-button>
-            <el-button type="warning" icon="Collection" @click="goToQuestionBank">题库练习</el-button>
             <el-button type="info" icon="Clock" @click="goToHistory">历史记录</el-button>
           </div>
         </el-card>
@@ -298,11 +297,6 @@ const goToTest = () => {
 
 const goToScore = () => {
   router.push('/top/history')
-}
-
-const goToQuestionBank = () => {
-  // 这里暂时跳转到考试列表，由老师选择练习试卷
-  router.push('/top/exams')
 }
 
 const goToHistory = () => {

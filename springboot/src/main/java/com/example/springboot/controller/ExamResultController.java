@@ -1,7 +1,9 @@
 package com.example.springboot.controller;
 
+import com.example.springboot.entity.Exam;
 import com.example.springboot.entity.ExamResult;
 import com.example.springboot.service.ExamResultService;
+import com.example.springboot.service.ExamService;
 import com.example.springboot.service.GradingService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -20,6 +22,9 @@ public class ExamResultController {
 
     @Autowired
     private ExamResultService examResultService;
+
+    @Autowired
+    private ExamService examService;
 
     @Autowired
     private GradingService gradingService;
@@ -72,6 +77,45 @@ public class ExamResultController {
             String username = (String) body.getOrDefault("username", "匿名用户");
             String examTitle = (String) body.getOrDefault("examTitle", "");
             int totalScore = body.get("totalScore") != null ? Integer.parseInt(body.get("totalScore").toString()) : 100;
+            
+            // 幂等性检查：检查用户是否已经提交过该考试
+            if (userId != null && examId != null) {
+                List<ExamResult> existingResults = examResultService.getResultsByUserId(userId);
+                for (ExamResult existing : existingResults) {
+                    if (examId.equals(existing.getExamId())) {
+                        return ResponseEntity.badRequest().body(Map.of(
+                            "error", "您已经提交过该考试，不能重复提交",
+                            "alreadySubmitted", true
+                        ));
+                    }
+                }
+            }
+            
+            // 验证考试状态和时间（允许超时一定时间内提交，考虑网络延迟）
+            if (examId != null) {
+                Exam exam = examService.getExamById(examId);
+                if (exam != null) {
+                    // 检查考试状态
+                    if (!"PUBLISHED".equals(exam.getStatus()) && !"FINISHED".equals(exam.getStatus())) {
+                        return ResponseEntity.badRequest().body(Map.of("error", "考试未发布，无法提交"));
+                    }
+                    
+                    // 检查结束时间（允许超时5分钟内提交，考虑网络延迟和自动交卷）
+                    if (exam.getEndTime() != null && !exam.getEndTime().isEmpty()) {
+                        try {
+                            java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                            java.util.Date endDate = sdf.parse(exam.getEndTime());
+                            long now = System.currentTimeMillis();
+                            long gracePeriod = 5 * 60 * 1000; // 5分钟宽限期
+                            if (now > endDate.getTime() + gracePeriod) {
+                                return ResponseEntity.badRequest().body(Map.of("error", "考试已结束超过5分钟，无法提交"));
+                            }
+                        } catch (Exception e) {
+                            // 时间解析失败，忽略
+                        }
+                    }
+                }
+            }
             
             // 获取用户答案
             String answersJson = objectMapper.writeValueAsString(body.get("answers"));

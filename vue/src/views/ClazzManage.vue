@@ -1,5 +1,30 @@
 <template>
   <div class="clazz-manage">
+    <!-- 统计卡片 -->
+    <div class="stats-cards">
+      <el-card class="stat-card" shadow="hover">
+        <div class="stat-content">
+          <div class="stat-number">{{ clazzList.length }}</div>
+          <div class="stat-label">班级总数</div>
+        </div>
+        <el-icon class="stat-icon" color="#667eea"><School /></el-icon>
+      </el-card>
+      <el-card class="stat-card" shadow="hover">
+        <div class="stat-content">
+          <div class="stat-number">{{ totalStudents }}</div>
+          <div class="stat-label">学生总数</div>
+        </div>
+        <el-icon class="stat-icon" color="#67c23a"><User /></el-icon>
+      </el-card>
+      <el-card class="stat-card" shadow="hover">
+        <div class="stat-content">
+          <div class="stat-number">{{ avgStudents }}</div>
+          <div class="stat-label">平均人数</div>
+        </div>
+        <el-icon class="stat-icon" color="#e6a23c"><DataAnalysis /></el-icon>
+      </el-card>
+    </div>
+
     <div class="layout-container">
       <!-- 左侧班级列表 -->
       <div class="left-panel">
@@ -10,9 +35,23 @@
             添加
           </el-button>
         </div>
+        <!-- 搜索框 -->
+        <div class="search-box">
+          <el-input
+            v-model="searchKeyword"
+            placeholder="搜索班级名称"
+            clearable
+            size="small"
+            @input="handleSearch"
+          >
+            <template #prefix>
+              <el-icon><Search /></el-icon>
+            </template>
+          </el-input>
+        </div>
         <div class="clazz-list" v-loading="loading">
           <div 
-            v-for="clazz in clazzList" 
+            v-for="clazz in filteredClazzList" 
             :key="clazz.id" 
             :class="['clazz-item', { active: currentClazz.id === clazz.id }]"
             @click="viewStudents(clazz)"
@@ -26,9 +65,9 @@
               <el-icon class="action-icon delete" @click.stop="handleDelete(clazz)"><Delete /></el-icon>
             </div>
           </div>
-          <div v-if="clazzList.length === 0 && !loading" class="empty-tip">
+          <div v-if="filteredClazzList.length === 0 && !loading" class="empty-tip">
             <el-icon class="empty-icon"><FolderOpened /></el-icon>
-            <p>暂无班级</p>
+            <p>{{ searchKeyword ? '未找到匹配班级' : '暂无班级' }}</p>
           </div>
         </div>
       </div>
@@ -47,10 +86,14 @@
         </div>
 
         <div class="student-table-wrapper" v-if="currentClazz.id">
-          <el-table :data="studentList" style="width: 100%" v-loading="studentLoading" class="student-table">
+          <el-table :data="paginatedStudents" style="width: 100%" v-loading="studentLoading" class="student-table">
             <el-table-column prop="id" label="ID" width="80" />
-            <el-table-column prop="username" label="用户名" width="200" />
-            <el-table-column prop="email" label="邮箱" />
+            <el-table-column prop="username" label="用户名" width="180" />
+            <el-table-column prop="email" label="邮箱">
+              <template #default="scope">
+                {{ scope.row.email || '-' }}
+              </template>
+            </el-table-column>
             <el-table-column prop="role" label="角色" width="100">
               <template #default="scope">
                 <el-tag :type="scope.row.role === '2' ? 'danger' : 'success'" size="small">
@@ -58,7 +101,29 @@
                 </el-tag>
               </template>
             </el-table-column>
+            <el-table-column label="操作" width="120" fixed="right">
+              <template #default="scope">
+                <el-button type="danger" size="small" link @click="handleRemoveStudent(scope.row)">
+                  <el-icon><Remove /></el-icon>
+                  移出班级
+                </el-button>
+              </template>
+            </el-table-column>
           </el-table>
+          
+          <!-- 分页 -->
+          <div class="pagination-container" v-if="studentList.length > pageSize">
+            <el-pagination
+              v-model:current-page="currentPage"
+              v-model:page-size="pageSize"
+              :page-sizes="[10, 20, 50]"
+              :total="studentList.length"
+              layout="total, sizes, prev, pager, next"
+              small
+              @size-change="handleSizeChange"
+              @current-change="handlePageChange"
+            />
+          </div>
         </div>
 
         <div v-if="currentClazz.id && studentList.length === 0 && !studentLoading" class="empty-tip">
@@ -106,9 +171,9 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, Edit, Delete, FolderOpened, User } from '@element-plus/icons-vue'
+import { Plus, Edit, Delete, FolderOpened, User, Search, School, DataAnalysis, Remove } from '@element-plus/icons-vue'
 
 const loading = ref(false)
 const submitLoading = ref(false)
@@ -116,11 +181,16 @@ const clazzList = ref([])
 const dialogVisible = ref(false)
 const isEdit = ref(false)
 const clazzFormRef = ref(null)
+const searchKeyword = ref('')
 
 // 学生列表相关
 const studentLoading = ref(false)
 const studentList = ref([])
 const currentClazz = ref({ id: null, name: '' })
+
+// 分页相关
+const currentPage = ref(1)
+const pageSize = ref(10)
 
 // 添加成员相关
 const memberDialogVisible = ref(false)
@@ -146,6 +216,42 @@ const clazzRules = {
     { required: true, message: '请输入班级名称', trigger: 'blur' },
     { min: 2, max: 50, message: '班级名称长度应在2-50个字符之间', trigger: 'blur' }
   ]
+}
+
+// 计算属性：筛选班级列表
+const filteredClazzList = computed(() => {
+  if (!searchKeyword.value) return clazzList.value
+  return clazzList.value.filter(c => c.name.toLowerCase().includes(searchKeyword.value.toLowerCase()))
+})
+
+// 计算属性：学生总数
+const totalStudents = computed(() => {
+  return clazzList.value.reduce((sum, c) => sum + (c.studentCount || 0), 0)
+})
+
+// 计算属性：平均人数
+const avgStudents = computed(() => {
+  if (clazzList.value.length === 0) return 0
+  return Math.round(totalStudents.value / clazzList.value.length)
+})
+
+// 计算属性：分页后的学生列表
+const paginatedStudents = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value
+  return studentList.value.slice(start, start + pageSize.value)
+})
+
+const handleSearch = () => {
+  // 搜索时自动筛选，无需额外操作
+}
+
+const handleSizeChange = (val) => {
+  pageSize.value = val
+  currentPage.value = 1
+}
+
+const handlePageChange = (val) => {
+  currentPage.value = val
 }
 
 const loadClazzes = async () => {
@@ -217,6 +323,10 @@ const handleDelete = (row) => {
       const result = await res.json()
       if (res.ok && result.code === 200) {
         ElMessage.success('班级删除成功')
+        if (currentClazz.value.id === row.id) {
+          currentClazz.value = { id: null, name: '' }
+          studentList.value = []
+        }
         loadClazzes()
       } else {
         ElMessage.error(result.message || '删除失败')
@@ -230,6 +340,7 @@ const handleDelete = (row) => {
 // 查看班级学生
 const viewStudents = async (clazz) => {
   currentClazz.value = { id: clazz.id, name: clazz.name }
+  currentPage.value = 1
   studentLoading.value = true
   try {
     const res = await fetch(`http://localhost:8081/api/clazz/${clazz.id}/students`)
@@ -248,6 +359,33 @@ const viewStudents = async (clazz) => {
   }
 }
 
+// 移出班级
+const handleRemoveStudent = (student) => {
+  ElMessageBox.confirm(`确定要将 "${student.username}" 移出班级吗？`, '移出班级', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning'
+  }).then(async () => {
+    try {
+      const res = await fetch(`http://localhost:8081/api/users/${student.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ classId: null })
+      })
+      const result = await res.json()
+      if (res.ok && result.code === 200) {
+        ElMessage.success('已移出班级')
+        viewStudents(currentClazz.value)
+        loadClazzes()
+      } else {
+        ElMessage.error(result.message || '操作失败')
+      }
+    } catch (e) {
+      ElMessage.error('网络错误')
+    }
+  }).catch(() => {})
+}
+
 // 打开添加成员弹窗
 const openAddMemberDialog = () => {
   memberForm.username = ''
@@ -255,14 +393,13 @@ const openAddMemberDialog = () => {
   memberDialogVisible.value = true
 }
 
-// 添加成员到班级（创建新用户并加入班级）
+// 添加成员到班级
 const handleAddMember = async () => {
   if (!memberFormRef.value) return
   await memberFormRef.value.validate(async (valid) => {
     if (!valid) return
     memberSubmitLoading.value = true
     try {
-      // 创建新用户并直接分配到当前班级
       const res = await fetch('http://localhost:8081/api/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -300,11 +437,52 @@ onMounted(() => { loadClazzes() })
   box-sizing: border-box;
 }
 
+/* 统计卡片 */
+.stats-cards {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.stat-card {
+  flex: 1;
+  max-width: 220px;
+}
+
+.stat-card :deep(.el-card__body) {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+}
+
+.stat-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.stat-number {
+  font-size: 28px;
+  font-weight: bold;
+  color: #303133;
+}
+
+.stat-label {
+  font-size: 14px;
+  color: #909399;
+  margin-top: 4px;
+}
+
+.stat-icon {
+  font-size: 36px;
+  opacity: 0.8;
+}
+
 .layout-container {
   display: flex;
   gap: 20px;
-  height: calc(100vh - 180px);
-  min-height: 500px;
+  height: calc(100vh - 280px);
+  min-height: 400px;
 }
 
 /* 左侧面板 */
@@ -366,6 +544,12 @@ onMounted(() => { loadClazzes() })
 .add-btn:hover {
   background: rgba(255, 255, 255, 0.3);
   border-color: rgba(255, 255, 255, 0.5);
+}
+
+/* 搜索框 */
+.search-box {
+  padding: 12px;
+  border-bottom: 1px solid #f0f0f0;
 }
 
 /* 班级列表 */
@@ -460,11 +644,14 @@ onMounted(() => { loadClazzes() })
   flex: 1;
   padding: 16px;
   overflow: auto;
+  display: flex;
+  flex-direction: column;
 }
 
 .student-table {
   border-radius: 8px;
   overflow: hidden;
+  flex: 1;
 }
 
 .student-table :deep(.el-table__header th) {
@@ -475,6 +662,15 @@ onMounted(() => { loadClazzes() })
 
 .student-table :deep(.el-table__row:hover > td) {
   background: #f0f5ff !important;
+}
+
+/* 分页 */
+.pagination-container {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 12px;
+  border-top: 1px solid #eee;
+  margin-top: 12px;
 }
 
 /* 空状态 */

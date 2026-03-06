@@ -19,9 +19,18 @@ public interface ExamResultMapper {
 
     void deleteByExamId(Long examId);
     
+    void deleteByUserId(Long userId);
+    
+    ExamResult[] selectByExamId(Long examId);
+    
     void update(ExamResult result);
     
     List<ExamResult> selectForGrading(@Param("status") String status, 
                                       @Param("examId") Long examId, 
                                       @Param("keyword") String keyword);
+    
+    /**
+     * 修复缺考记录的批改状态
+     */
+    int fixAbsentGradingStatus();
 }

@@ -49,15 +49,35 @@
                 <div 
                   v-for="n in notifications" 
                   :key="n.id" 
-                  :class="['notification-item', { unread: n.isRead === 0 }]"
+                  :class="['notification-item', { unread: n.isRead === 0 }, 'type-' + (n.type || 'default').toLowerCase()]"
                   @click="handleNotificationClick(n)"
                 >
-                  <div class="notification-title">{{ n.title }}</div>
-                  <div class="notification-content">{{ n.content }}</div>
-                  <div class="notification-time">{{ n.createTime }}</div>
+                  <div class="notification-icon">
+                    <el-icon v-if="n.type === 'EXAM'"><Document /></el-icon>
+                    <el-icon v-else-if="n.type === 'GRADE'"><Trophy /></el-icon>
+                    <el-icon v-else-if="n.type === 'SYSTEM'"><Setting /></el-icon>
+                    <el-icon v-else><Bell /></el-icon>
+                  </div>
+                  <div class="notification-body">
+                    <div class="notification-title">{{ n.title }}</div>
+                    <div class="notification-content">{{ n.content }}</div>
+                    <div class="notification-footer">
+                      <span class="notification-time">{{ formatRelativeTime(n.createTime) }}</span>
+                      <el-button 
+                        type="danger" 
+                        link 
+                        size="small" 
+                        @click.stop="deleteNotification(n)"
+                        class="delete-btn"
+                      >删除</el-button>
+                    </div>
+                  </div>
                 </div>
               </div>
-              <div v-else class="notification-empty">暂无通知</div>
+              <div v-else class="notification-empty">
+                <el-icon class="empty-icon"><Bell /></el-icon>
+                <p>暂无通知</p>
+              </div>
             </div>
           </el-popover>
 
@@ -131,8 +151,11 @@ import {
   Bell,
   User,
   ArrowDown,
-  SwitchButton
+  SwitchButton,
+  Trophy,
+  Setting
 } from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
 
 const router = useRouter()
 const route = useRoute()
@@ -204,6 +227,50 @@ const handleNotificationClick = async (n) => {
   // 如果是考试通知，跳转到考试列表
   if (n.type === 'EXAM' && n.relatedId) {
     router.push('/top/exams')
+  } else if (n.type === 'GRADE' && n.relatedId) {
+    router.push('/top/history')
+  }
+}
+
+// 格式化相对时间
+const formatRelativeTime = (timeStr) => {
+  if (!timeStr) return ''
+  const now = new Date()
+  const time = new Date(timeStr)
+  const diff = now - time
+  
+  const minutes = Math.floor(diff / 60000)
+  const hours = Math.floor(diff / 3600000)
+  const days = Math.floor(diff / 86400000)
+  
+  if (minutes < 1) return '刚刚'
+  if (minutes < 60) return `${minutes}分钟前`
+  if (hours < 24) return `${hours}小时前`
+  if (days < 7) return `${days}天前`
+  
+  // 超过7天显示具体日期
+  const month = time.getMonth() + 1
+  const day = time.getDate()
+  return `${month}月${day}日`
+}
+
+// 删除通知
+const deleteNotification = async (n) => {
+  try {
+    const res = await fetch(`http://localhost:8081/api/notifications/${n.id}`, { method: 'DELETE' })
+    if (res.ok) {
+      const index = notifications.value.findIndex(item => item.id === n.id)
+      if (index > -1) {
+        if (notifications.value[index].isRead === 0) {
+          unreadCount.value = Math.max(0, unreadCount.value - 1)
+        }
+        notifications.value.splice(index, 1)
+      }
+      ElMessage.success('删除成功')
+    }
+  } catch (e) {
+    console.error('删除通知失败', e)
+    ElMessage.error('删除失败')
   }
 }
 
@@ -435,11 +502,13 @@ const handleLogout = () => {
 }
 
 .notification-item {
-  padding: 10px;
-  border-radius: 4px;
+  padding: 12px;
+  border-radius: 8px;
   margin-bottom: 8px;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: all 0.2s;
+  display: flex;
+  gap: 12px;
 }
 
 .notification-item:hover {
@@ -449,6 +518,39 @@ const handleLogout = () => {
 .notification-item.unread {
   background: #ecf5ff;
   border-left: 3px solid #409eff;
+}
+
+.notification-item.type-exam .notification-icon {
+  color: #409eff;
+  background: rgba(64, 158, 255, 0.1);
+}
+
+.notification-item.type-grade .notification-icon {
+  color: #e6a23c;
+  background: rgba(230, 162, 60, 0.1);
+}
+
+.notification-item.type-system .notification-icon {
+  color: #909399;
+  background: rgba(144, 147, 153, 0.1);
+}
+
+.notification-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 18px;
+  color: #409eff;
+  background: rgba(64, 158, 255, 0.1);
+}
+
+.notification-body {
+  flex: 1;
+  min-width: 0;
 }
 
 .notification-title {
@@ -468,10 +570,32 @@ const handleLogout = () => {
   color: #999;
 }
 
+.notification-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 4px;
+}
+
+.delete-btn {
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.notification-item:hover .delete-btn {
+  opacity: 1;
+}
+
 .notification-empty {
   text-align: center;
-  padding: 30px;
+  padding: 40px 30px;
   color: #999;
+}
+
+.empty-icon {
+  font-size: 48px;
+  color: #ddd;
+  margin-bottom: 10px;
 }
 
 .el-dropdown-link {

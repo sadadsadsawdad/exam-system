@@ -1,0 +1,12 @@
+{
+  "$schema": "https://railway.app/railway.schema.json",
+  "build": {
+    "builder": "NIXPACKS",
+    "buildCommand": "cd springboot && mvn clean package -DskipTests"
+  },
+  "deploy": {
+    "startCommand": "java -Xms256m -Xmx512m -jar springboot/target/springboot-0.0.1-SNAPSHOT.jar",
+    "restartPolicyType": "ON_FAILURE",
+    "restartPolicyMaxRetries": 10
+  }
+}

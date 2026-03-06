@@ -3,8 +3,10 @@ package com.example.springboot.controller;
 import com.example.springboot.common.Result;
 import com.example.springboot.dao.ExamResultMapper;
 import com.example.springboot.dao.GradingDetailMapper;
+import com.example.springboot.dao.NotificationMapper;
 import com.example.springboot.entity.ExamResult;
 import com.example.springboot.entity.GradingDetail;
+import com.example.springboot.entity.Notification;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,6 +27,9 @@ public class GradingController {
 
     @Autowired
     private GradingDetailMapper gradingDetailMapper;
+
+    @Autowired
+    private NotificationMapper notificationMapper;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
@@ -91,6 +96,9 @@ public class GradingController {
                 return Result.error("答卷不存在");
             }
             
+            // 先删除旧的批改记录（如果存在）
+            gradingDetailMapper.deleteBySheetId(sheetId);
+            
             // 计算总分
             int totalScore = 0;
             for (Map<String, Object> answer : answers) {
@@ -106,8 +114,6 @@ public class GradingController {
                 detail.setComment(answer.get("comment") != null ? answer.get("comment").toString() : "");
                 detail.setCreateTime(LocalDateTime.now().format(formatter));
                 
-                // 先删除旧的批改记录（如果存在）
-                gradingDetailMapper.deleteBySheetId(sheetId);
                 gradingDetailMapper.insert(detail);
             }
             
@@ -117,6 +123,9 @@ public class GradingController {
             examResult.setGradedBy(gradedBy);
             examResult.setGradedTime(LocalDateTime.now().format(formatter));
             examResultMapper.update(examResult);
+            
+            // 发送成绩通知给学生
+            sendGradeNotification(examResult, totalScore);
             
             return Result.success("批改保存成功");
         } catch (Exception e) {
@@ -253,6 +262,25 @@ public class GradingController {
             return Result.success(statsList);
         } catch (Exception e) {
             return Result.error("获取班级统计信息失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 发送成绩通知给学生
+     */
+    private void sendGradeNotification(ExamResult examResult, int score) {
+        try {
+            Notification notification = new Notification();
+            notification.setUserId(examResult.getUserId());
+            notification.setTitle("成绩通知：" + examResult.getExamTitle());
+            notification.setContent(String.format("您的考试【%s】已批改完成，得分：%d分，请查看详情。", 
+                    examResult.getExamTitle(), score));
+            notification.setType("GRADE");
+            notification.setRelatedId(examResult.getId());
+            notificationMapper.insert(notification);
+        } catch (Exception e) {
+            // 通知发送失败不影响批改结果
+            System.err.println("发送成绩通知失败: " + e.getMessage());
         }
     }
 }

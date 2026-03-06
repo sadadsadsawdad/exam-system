@@ -54,4 +54,13 @@ public class NotificationController {
         notificationService.markAllAsRead(userId);
         return new ResponseEntity<>(HttpStatus.OK);
     }
+
+    /**
+     * 删除通知
+     */
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteNotification(@PathVariable Long id) {
+        notificationService.deleteNotification(id);
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
 }

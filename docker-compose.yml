@@ -1,0 +1,72 @@
+version: '3.8'
+
+services:
+  # MySQL 数据库
+  mysql:
+    image: mysql:8.0
+    container_name: exam-mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root123456
+      MYSQL_DATABASE: exam
+      MYSQL_USER: examuser
+      MYSQL_PASSWORD: exam123456
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./springboot/src/main/resources/sql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - exam-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Spring Boot 后端
+  backend:
+    build:
+      context: ./springboot
+      dockerfile: Dockerfile
+    container_name: exam-backend
+    restart: always
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/exam?useSSL=false&serverTimezone=Asia/Shanghai&characterEncoding=utf8&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: examuser
+      SPRING_DATASOURCE_PASSWORD: exam123456
+      SERVER_PORT: 8081
+    ports:
+      - "8081:8081"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - exam-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Nginx + Vue 前端
+  frontend:
+    build:
+      context: ./vue
+      dockerfile: Dockerfile
+    container_name: exam-frontend
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - exam-network
+
+volumes:
+  mysql-data:
+    driver: local
+
+networks:
+  exam-network:
+    driver: bridge

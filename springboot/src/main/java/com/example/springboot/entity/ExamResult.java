@@ -1,5 +1,16 @@
 package com.example.springboot.entity;
 
+/**
+ * 考试结果实体
+ * 
+ * 状态字段说明：
+ * - status: 考试完成状态
+ *   - FINISHED: 已交卷
+ *   - ABSENT: 缺考
+ * - gradingStatus: 批改状态
+ *   - PENDING: 待批改（包含编程题需要人工批改）
+ *   - GRADED: 已批改（客观题自动批改完成或人工批改完成）
+ */
 public class ExamResult {
     private Long id;
     private Long userId;
@@ -8,7 +19,7 @@ public class ExamResult {
     private String examTitle;
     private Integer score;
     private Integer totalScore;  // 试卷总分
-    private String status; // FINISHED / PASSED / FAILED / PENDING / GRADED 等
+    private String status; // 考试完成状态: FINISHED（已交卷）
     private String submitTime; // 简单用字符串保存
     private String codeAnswer; // 编程题代码（可以是JSON或纯文本）
     private String answerDetail; // 答题详情JSON（包含每道题的用户答案、正确答案、得分等）
